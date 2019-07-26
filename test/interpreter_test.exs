@@ -69,4 +69,18 @@ defmodule InterpreterTest do
 
     assert {:ok, "hi"} = Interpreter.execute(code)
   end
+
+  test "execute in operator" do
+    code = """
+
+    actions do
+      a = "b"
+      if a in ["a", "b"] do
+        "hello"
+      end
+    end
+    """
+
+    assert {:ok, "hello"} = Interpreter.execute(code)
+  end
 end

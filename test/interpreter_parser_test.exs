@@ -396,4 +396,51 @@ defmodule Interpreter.ParserTest do
       ]
     ]}} = Interpreter.Parser.parse(code)
   end
+
+  test "parse in " do
+    code = """
+      condition response: @response.previous_public_key in @contract.keys
+    """
+
+    assert {:ok, {:condition, [line: 1],
+    [
+      [
+        response: {:in, [line: 1],
+         [
+           {{:., [line: 1],
+             [
+               {:@, [line: 1],
+                [
+                  {:response, [line: 1],
+                   nil}
+                ]},
+               :previous_public_key
+             ]}, [line: 1], []},
+           {{:., [line: 1],
+             [
+               {:@, [line: 1],
+                [
+                  {:contract, [line: 1],
+                   nil}
+                ]},
+               :keys
+             ]}, [line: 1], []}
+         ]}
+      ]
+    ]}} == Interpreter.Parser.parse(code)
+  end
+
+  test "parse list" do
+    code = """
+      []
+    """
+
+    {:ok, []} = Interpreter.Parser.parse(code)
+
+    code = """
+      ["a"]
+    """
+
+    {:ok, ["a"]} = Interpreter.Parser.parse(code)
+  end
 end

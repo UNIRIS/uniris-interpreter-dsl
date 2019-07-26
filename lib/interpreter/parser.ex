@@ -76,14 +76,14 @@ defmodule Interpreter.Parser do
     end
   end
 
-  ## Whitelist the condition: 'response'
+  # ## Whitelist the condition: 'response'
   defp filter_ast({:condition, _, [[response: _]]} = node, {:ok, _}),
     do: {node, {:ok, :condition}}
 
-  ## Whitelist the condition: 'inherit'
+  # ## Whitelist the condition: 'inherit'
   defp filter_ast({:condition, _, [[inherit: _]]} = node, {:ok, _}), do: {node, {:ok, :condition}}
 
-  ## Continue the scoping as condition to whitelist only some behaviors
+  # # Continue the scoping as condition to whitelist only some behaviors
   defp filter_ast(node, {:ok, :condition}), do: {node, {:ok, :condition}}
 
   defp filter_ast({:+, _, _} = node, {:ok, scope} = acc) when scope in [:actions],
@@ -102,7 +102,7 @@ defmodule Interpreter.Parser do
   defp filter_ast(false, {:ok, _} = acc), do: {false, acc}
   defp filter_ast(number, {:ok, _} = acc) when is_number(number), do: {number, acc}
   defp filter_ast(string, {:ok, _} = acc) when is_binary(string), do: {string, acc}
-  defp filter_ast([_] = node, {:ok, _} = acc), do: {node, acc}
+  defp filter_ast(node = node, {:ok, _} = acc) when is_list(node), do: {node, acc}
   defp filter_ast({:do, _} = node, {:ok, _} = acc), do: {node, acc}
   defp filter_ast(key, {:ok, _} = acc) when is_atom(key), do: {key, acc}
   defp filter_ast({key, _} = node, {:ok, _} = acc) when is_atom(key), do: {node, acc}
@@ -111,7 +111,7 @@ defmodule Interpreter.Parser do
   defp filter_ast({:=, _, _} = node, {:ok, scope} = acc) when scope in [:actions],
     do: {node, acc}
 
-  ## Whitelist the use of member fields for globals
+  ## hitelist the use of member fields for globals
   defp filter_ast(
          {{:., _, [{:@, _, _}, _]}, _, []} = node,
          {:ok, _parent} = acc
@@ -167,6 +167,10 @@ defmodule Interpreter.Parser do
        when scope in [:actions],
        do: {node, acc}
 
+  ## Whitelist the in operation
+  defp filter_ast({:in , _, [_, _]} = node, {:ok, _} = acc), do: {node, acc}
+
+  ## Blaclikst anything else
   defp filter_ast(node, {:ok, _scope}) do
     {node, {:error, :syntax}}
   end
