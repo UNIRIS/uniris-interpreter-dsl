@@ -43,4 +43,30 @@ defmodule InterpreterTest do
 
     assert {:ok, "hello"} = Interpreter.execute(code)
   end
+
+  test "execute if condition" do
+    code = """
+      actions do
+        if true do
+          "hello"
+        end
+      end
+    """
+
+    assert {:ok, "hello"} = Interpreter.execute(code)
+  end
+
+  test "execute if else condition" do
+    code = """
+      actions do
+        if false do
+          "hello"
+        else
+          "hi"
+        end
+      end
+    """
+
+    assert {:ok, "hi"} = Interpreter.execute(code)
+  end
 end

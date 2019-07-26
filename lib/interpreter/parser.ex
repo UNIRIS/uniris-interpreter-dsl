@@ -14,8 +14,8 @@ defmodule Interpreter.Parser do
   @transaction_functions [:new_transaction]
   @string_functions [:regex]
 
-  @conditions_functions [] ++ [@string_functions]
-  @actions_functions [] ++ [@transaction_functions, @string_functions]
+  @conditions_functions [] ++ @string_functions
+  @actions_functions [] ++ @transaction_functions ++ @string_functions
 
   def parse(code) do
     with code <- String.trim(code),
@@ -99,7 +99,7 @@ defmodule Interpreter.Parser do
     do: {node, acc}
 
   defp filter_ast(true, {:ok, _} = acc), do: {true, acc}
-  defp filter_ast(false, {:ok, _} = acc), do: {true, acc}
+  defp filter_ast(false, {:ok, _} = acc), do: {false, acc}
   defp filter_ast(number, {:ok, _} = acc) when is_number(number), do: {number, acc}
   defp filter_ast(string, {:ok, _} = acc) when is_binary(string), do: {string, acc}
   defp filter_ast([_] = node, {:ok, _} = acc), do: {node, acc}
@@ -122,12 +122,9 @@ defmodule Interpreter.Parser do
   defp filter_ast(
          {:., _, [{:@, _, [{global, _, nil}]}, member]} = node,
          {:ok, _} = acc
-       ) do
-    if global in [:contract, :response] and member in @fields_whitelist do
-      {node, acc}
-    else
-      {node, {:error, :syntax}}
-    end
+       )
+       when global in [:contract, :response] and member in @fields_whitelist do
+    {node, acc}
   end
 
   ## Whitelist the definition of globals in the root
@@ -143,26 +140,26 @@ defmodule Interpreter.Parser do
        do: {node, acc}
 
   ## Whitelist the use of atoms in the root when used as global names
-  defp filter_ast({key, _, [_]} = node, {:ok, :root} = acc) when is_atom(key) do
-    if key not in [:condition, :actions, :trigger] do
-      {node, acc}
-    else
-      {node, {:error, :syntax}}
-    end
+  defp filter_ast({key, _, [_]} = node, {:ok, :root} = acc)
+       when is_atom(key) and key not in [:condition, :actions, :trigger] do
+    {node, acc}
   end
 
+  defp filter_ast({:if, _, [_, [do: _]]} = node, {:ok, :actions} = acc), do: {node, acc}
+  defp filter_ast({:if, _, [_, [do: _, else: _]]} = node, {:ok, :actions} = acc), do: {node, acc}
+  defp filter_ast([do: _, else: _] = node, {:ok, :actions} = acc), do: {node, acc}
+
   # Whitelist the used of functions in the conditions
-  defp filter_ast({key, _, [_]} = node, {:ok, :conditions} = acc)
-       when is_atom(key)
-       when key in @conditions_functions,
-       do: {node, acc}
+  defp filter_ast({key, _, args} = node, {:ok, :conditions} = acc)
+       when is_atom(key) and is_list(args) and key in @conditions_functions do
+    {node, acc}
+  end
 
   ## Whitelist the used of functions in the actions
   defp filter_ast({key, _, args} = node, {:ok, :actions} = acc)
-       when is_atom(key)
-       when key in @actions_functions
-       when is_list(args),
-       do: {node, acc}
+       when is_atom(key) and is_list(args) and key in @actions_functions do
+    {node, acc}
+  end
 
   ## Whitelist the used of variables in the actions
   defp filter_ast({var, _, nil} = node, {:ok, scope} = acc)

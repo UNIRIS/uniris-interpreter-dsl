@@ -199,7 +199,7 @@ defmodule Interpreter.ParserTest do
              ]}} = Interpreter.Parser.parse(code)
   end
 
-  test "parse variable" do
+  test "parse variable assignation" do
     code = """
       actions do
         a = "153"
@@ -318,5 +318,82 @@ defmodule Interpreter.ParserTest do
 
     assert {:ok, {:condition, [line: 1], [[response: {:regex, [line: 1], []}]]}} =
              Interpreter.Parser.parse(code)
+  end
+
+  test "parse if inside actions" do
+    code = """
+      actions do
+        if true do
+          new_transaction()
+        end
+      end
+    """
+
+    assert {:ok,
+            {:actions, [line: 1],
+             [
+               [
+                 do:
+                   {:if, [line: 2],
+                    [
+                      true,
+                      [
+                        do: {:new_transaction, [line: 3], []}
+                      ]
+                    ]}
+               ]
+             ]}} = Interpreter.Parser.parse(code)
+  end
+
+  test "parse if inside actions and multiple line" do
+    code = """
+      actions do
+        if true do
+          a = ""
+          new_transaction(a)
+        end
+      end
+    """
+
+    assert {:ok, {:actions, [line: 1],
+    [
+      [
+        do: {:if, [line: 2],
+         [
+           true,
+           [
+             do: {:__block__, [],
+              [
+                {:=, [line: 3],
+                 [{:a, [line: 3], nil}, ""]},
+                {:new_transaction,
+                 [line: 4],
+                 [{:a, [line: 4], nil}]}
+              ]}
+           ]
+         ]}
+      ]
+    ]}} = Interpreter.Parser.parse(code)
+
+  end
+
+  test "parse if else in actions" do
+    code = """
+      actions do
+        if false do
+          "hello"
+        else
+          "hi"
+        end
+      end
+    """
+
+    assert {:ok, {:actions, [line: 1],
+    [
+      [
+        do: {:if, [line: 2],
+         [false, [do: "hello", else: "hi"]]}
+      ]
+    ]}} = Interpreter.Parser.parse(code)
   end
 end
