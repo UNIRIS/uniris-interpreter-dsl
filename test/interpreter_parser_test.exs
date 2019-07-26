@@ -92,16 +92,18 @@ defmodule Interpreter.ParserTest do
 
   test "parse origin_family condition" do
     code = """
-      condition origin_family: biometric
+      condition origin_family: @biometric
     """
 
-    assert {:ok, {:condition, [line: 1], [[origin_family: :biometric]]}} ==
+    assert {:ok,
+            {:condition, [line: 1],
+             [[origin_family: {:@, [line: 1], [{:biometric, [line: 1], nil}]}]]}} ==
              Interpreter.Parser.parse(code)
   end
 
   test "parse invalid origin_family condition" do
     code = """
-      condition origin_family: :other
+      condition origin_family: @other
     """
 
     assert {:error, :syntax} = Interpreter.Parser.parse(code)
@@ -145,7 +147,7 @@ defmodule Interpreter.ParserTest do
       condition response: false
     """
 
-    assert {:ok, {:condition, [line: 1], [[response: true]]}} ==
+    assert {:ok, {:condition, [line: 1], [[response: false]]}} ==
              Interpreter.Parser.parse(code)
   end
 
@@ -182,8 +184,7 @@ defmodule Interpreter.ParserTest do
       condition response: true
 
       actions do
-        a = "new_address"
-        send_transaction(a)
+        new_transaction()
       end
     """
 
@@ -194,17 +195,7 @@ defmodule Interpreter.ParserTest do
                {:trigger, [line: 2], [[datetime: 1_348_458_454_655_658]]},
                {:condition, [line: 4], [[inherit: true]]},
                {:condition, [line: 5], [[response: true]]},
-               {:actions, [line: 7],
-                [
-                  [
-                    do:
-                      {:__block__, [],
-                       [
-                         {:=, [line: 8], [{:a, [line: 8], nil}, "new_address"]},
-                         {:send_transaction, [line: 9], [{:a, [line: 9], nil}]}
-                       ]}
-                  ]
-                ]}
+               {:actions, [line: 7], [[do: {:new_transaction, [line: 8], []}]]}
              ]}} = Interpreter.Parser.parse(code)
   end
 
@@ -226,7 +217,7 @@ defmodule Interpreter.ParserTest do
 
   test "parse globals" do
     code = """
-      address = "fdsfjsdkfjksjfksdjk"
+      @address "fdsfjsdkfjksjfksdjk"
       actions do
         a = @address
       end
@@ -235,10 +226,9 @@ defmodule Interpreter.ParserTest do
     assert {:ok,
             {:__block__, [],
              [
-               {:=, [line: 1],
+               {:@, [line: 1],
                 [
-                  {:address, [line: 1], nil},
-                  "fdsfjsdkfjksjfksdjk"
+                  {:address, [line: 1], ["fdsfjsdkfjksjfksdjk"]}
                 ]},
                {:actions, [line: 2],
                 [
@@ -252,5 +242,81 @@ defmodule Interpreter.ParserTest do
                   ]
                 ]}
              ]}} == Interpreter.Parser.parse(code)
+  end
+
+  test "parse not whitelist term" do
+    code = """
+      File.write("/tmp/1.txt", "my data")
+    """
+
+    assert {:error, :syntax} == Interpreter.Parser.parse(code)
+
+    code = """
+     System.cmd("echo", ["hello"])
+    """
+
+    assert {:error, :syntax} == Interpreter.Parser.parse(code)
+
+    code = """
+     System.cmd("echo", ["hello"])
+    """
+
+    assert {:error, :syntax} == Interpreter.Parser.parse(code)
+
+    code = """
+     def mymethod do
+     end
+    """
+
+    assert {:error, :syntax} == Interpreter.Parser.parse(code)
+  end
+
+  test "parse response globals" do
+    code = """
+      condition response: @response.content
+    """
+
+    assert {:ok,
+            {:condition, [line: 1],
+             [
+               [
+                 response:
+                   {{:., [line: 1],
+                     [
+                       {:@, [line: 1], [{:response, [line: 1], nil}]},
+                       :content
+                     ]}, [line: 1], []}
+               ]
+             ]}} == Interpreter.Parser.parse(code)
+  end
+
+  test "parse contract globals" do
+    code = """
+      actions do
+        @contract.content
+      end
+    """
+
+    assert {:ok,
+            {:actions, [line: 1],
+             [
+               [
+                 do:
+                   {{:., [line: 2],
+                     [
+                       {:@, [line: 2], [{:contract, [line: 2], nil}]},
+                       :content
+                     ]}, [line: 2], []}
+               ]
+             ]}} == Interpreter.Parser.parse(code)
+  end
+
+  test "parse functions inside condition" do
+    code = """
+      condition response: regex()
+    """
+
+    assert {:ok, {:condition, [line: 1], [[response: {:regex, [line: 1], []}]]}} =
+             Interpreter.Parser.parse(code)
   end
 end

@@ -11,17 +11,6 @@ defmodule InterpreterTest do
     assert {:ok, 4} = Interpreter.execute(code)
   end
 
-  test "execute contract with multiple actions" do
-    code = """
-      actions do
-        2+2
-        4*2
-      end
-    """
-
-    assert {:ok, [4, 8]} = Interpreter.execute(code)
-  end
-
   test "execute contract with triggers" do
     code = """
       trigger datetime: 05501051515
@@ -46,8 +35,8 @@ defmodule InterpreterTest do
 
   test "execute contract with variable assignation" do
     code = """
-      a = "hello"
       actions do
+        a = "hello"
         a
       end
     """

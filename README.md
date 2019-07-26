@@ -9,11 +9,11 @@ The contract are always interpreted.
 ```
 trigger :datetime 1348458454655658
 
-condition origin_family: :biometric
-condition response: :response.public_key in :contract.keys
+condition origin_family: @biometric
+condition response: @response.public_key in @contract.keys
 
 actions do
-  send_transaction 
+  new_transaction() 
 end
 ```
 
@@ -23,14 +23,14 @@ We could also provide even more accurate behaviors such as
 ```
 trigger :datetime 1348458454655658
 
-condition response: :response.public_key in :contract.keys
+condition response: @response.public_key in @contract.keys
 
 actions :trigger do
-  send_transaction
+  new_transaction()
 end
 
 actions :response do
-  send_transaction
+  new_transaction()
 end
 ```
 

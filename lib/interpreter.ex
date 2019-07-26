@@ -3,23 +3,22 @@ defmodule Interpreter do
     with {:ok, ast} <- Interpreter.Parser.parse(code),
          {:ok, contract} <- build_contract(ast),
          {res, _} <- Code.eval_quoted(contract.actions, contract.globals) do
-      {:ok, res}
+          {:ok, res}
     else
       {:error, _} = e ->
         e
     end
   end
 
-  defp build_contract({:actions, _, [[do: {:__block__, _, elems}]]}) when is_list(elems),
-    do: {:ok, %{actions: elems, globals: []}}
+  defp build_contract({:actions, _, [[do: {:__block__, _, elems} = actions]]}) when is_list(elems),
+    do: {:ok, %{actions: actions, globals: []}}
 
   defp build_contract({:actions, _, [[do: elems]]}) when is_tuple(elems),
     do: {:ok, %{actions: elems, globals: []}}
 
   defp build_contract({:__block__, [], elems}) do
     contract =
-      Enum.reduce(elems, %{triggers: [], conditions: [], actions: [], globals: []}, fn e,
-                                                                                       contract ->
+      Enum.reduce(elems, %{triggers: [], conditions: [], actions: [], globals: []}, fn (e, contract) ->
         case e do
           {:=, _, [{token, _, nil}, value]} ->
             Map.put(contract, :globals, Keyword.put(contract.globals, token, value))
@@ -44,8 +43,8 @@ defmodule Interpreter do
                 [%{type: condition_type, value: Keyword.get(props, condition_type)}]
             )
 
-          {:actions, _, [[do: {:__block__, _, elems}]]} when is_tuple(elems) ->
-            Map.put(contract, :actions, elems)
+          {:actions, _, [[do: {:__block__, _, elems} = actions]]} when is_tuple(elems) ->
+            Map.put(contract, :actions, actions)
 
           {:actions, _, [[do: elems]]} when is_tuple(elems) ->
             Map.put(contract, :actions, elems)
