@@ -1,21 +1,37 @@
-# UnirisInterpreterV2
+# Uniris Interpreter with DSL
 
-**TODO: Add description**
+New version of the interpreter using a Domain Specific Language on top of Elixir and its metaprogramming features.
+Make easy to create language with user and developer friendly approach and be based on the Elixir parser and runner.
+The contract are always interpreted.
 
-## Installation
+## Example
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `uniris_interpreter_v2` to your list of dependencies in `mix.exs`:
+```
+trigger :datetime 1348458454655658
 
-```elixir
-def deps do
-  [
-    {:uniris_interpreter_v2, "~> 0.1.0"}
-  ]
+condition origin_family: :biometric
+condition response: :response.public_key in :contract.keys
+
+actions do
+  send_transaction 
 end
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/uniris_interpreter_v2](https://hexdocs.pm/uniris_interpreter_v2).
+This can be extanded as we want. 
+We could also provide even more accurate behaviors such as
+
+```
+trigger :datetime 1348458454655658
+
+condition response: :response.public_key in :contract.keys
+
+actions :trigger do
+  send_transaction
+end
+
+actions :response do
+  send_transaction
+end
+```
+
 

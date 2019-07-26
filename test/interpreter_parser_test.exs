@@ -92,7 +92,7 @@ defmodule Interpreter.ParserTest do
 
   test "parse origin_family condition" do
     code = """
-      condition origin_family: :biometric
+      condition origin_family: biometric
     """
 
     assert {:ok, {:condition, [line: 1], [[origin_family: :biometric]]}} ==
