@@ -83,4 +83,15 @@ defmodule InterpreterTest do
 
     assert {:ok, "hello"} = Interpreter.execute(code)
   end
+
+  test "execute global" do
+    code = """
+      @hello "123"
+      actions do
+        @hello
+      end
+    """
+
+    assert {:ok, "123"} = Interpreter.execute(code)
+  end
 end

@@ -1,13 +1,30 @@
 defmodule Interpreter do
   def execute(code) do
-    with {:ok, ast} <- Interpreter.Parser.parse(code),
-         {:ok, contract} <- build_contract(ast),
-         {res, _} <- Code.eval_quoted(contract.actions, contract.globals) do
-      {:ok, res}
-    else
-      {:error, _} = e ->
-        e
+    {:ok, ast} = Interpreter.Parser.parse(code)
+    {:ok, contract} = build_contract(ast)
+
+    q = quote do
+      defmodule Contract do
+
+        unquote contract.globals
+          |> Enum.map(fn {key, val} ->
+            "@#{Atom.to_string(key)} #{inspect val}"
+          end)
+          |> Enum.map(fn global ->
+            {:ok, quoted} = Code.string_to_quoted(global)
+            quoted
+          end)
+
+        def execute_action do
+          res = unquote contract.actions
+          {:ok, res}
+        end
+
+      end
     end
+
+    {{:module, contract, _code, _methods}, []} = Code.eval_quoted(q)
+    contract.execute_action
   end
 
   defp build_contract({:actions, _, [[do: {:__block__, _, elems} = actions]]})
@@ -19,10 +36,9 @@ defmodule Interpreter do
 
   defp build_contract({:__block__, [], elems}) do
     contract =
-      Enum.reduce(elems, %{triggers: [], conditions: [], actions: [], globals: []}, fn e,
-                                                                                       contract ->
+      Enum.reduce(elems, %{triggers: [], conditions: [], actions: [], globals: []}, fn (e, contract) ->
         case e do
-          {:=, _, [{token, _, nil}, value]} ->
+          {:@, _, [{token, _, [value]}]} ->
             Map.put(contract, :globals, Keyword.put(contract.globals, token, value))
 
           {:trigger, _, [props]} ->

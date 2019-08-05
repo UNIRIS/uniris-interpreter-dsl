@@ -443,4 +443,18 @@ defmodule Interpreter.ParserTest do
 
     {:ok, ["a"]} = Interpreter.Parser.parse(code)
   end
+
+  test "parse multiple actions blocks" do
+    code = """
+      actions do
+        1+1
+      end
+
+      actions do
+        2+2
+      end
+    """
+
+    {:error, :syntax} = Interpreter.Parser.parse(code)
+  end
 end
